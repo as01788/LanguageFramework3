@@ -51,7 +51,7 @@ export class JsonUIManager {
                     this.language.set(item.id, item);
                 }
             });
-            director.emit('initJosnUI');
+            director.emit('initJsonUI');
         });
         this.SwitchLanguage(this.currentLanguage, true);
     }

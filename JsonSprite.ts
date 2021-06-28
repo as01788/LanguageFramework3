@@ -19,7 +19,7 @@ export default class JsonSprite extends Component {
 
         director.targetOff(this);
         //注册开始初始化语言回调
-        director.once('initJosnUI', () => {
+        director.once('initJsonUI', () => {
             this.InitSprite();
         }, this);
 

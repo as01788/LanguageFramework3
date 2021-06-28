@@ -23,7 +23,7 @@ export default class JsonUI extends Component {
         this.JsonPath = jsonPath;
         director.targetOff(this);
         //注册开始初始化语言回调
-        director.once('initJosnUI', () => {
+        director.once('initJsonUI', () => {
             this.InitLanguage();
         }, this);
 

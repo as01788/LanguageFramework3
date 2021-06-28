@@ -33,7 +33,7 @@ export default class JsonLabel extends Component {
             console.warn('null component');
         }
         //注册开始初始化语言回调
-        director.once('initJosnUI', () => {
+        director.once('initJsonUI', () => {
             this.initLabel();
         }, this);
 
