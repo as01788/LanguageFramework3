@@ -61,6 +61,8 @@ export default class JsonUI extends Component {
                 // this.Json.json['Info'].language = JsonUIManager.CurrentLanguage;
                 this.initJson();
             });
+        }else if(this.Json){
+            this.initJson();
         }
     }
 
