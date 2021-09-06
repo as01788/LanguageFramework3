@@ -1,6 +1,6 @@
 
-import { _decorator, Component, Label, RichText, director } from "cc";
-import { JsonUIManager } from "./JsonUIManager";
+import { _decorator, Component, Label, RichText } from "cc";
+import { JsonUIManager, LanguageEventType } from "./JsonUIManager";
 
 const { ccclass, property } = _decorator;
 
@@ -21,7 +21,7 @@ export default class JsonLabel extends Component {
         if (this.isInit) return;
 
         this.isInit = true;
-        director.targetOff(this);
+        JsonUIManager.event.targetOff(this);
 
         this.id = id;
         if (!this.label)
@@ -33,12 +33,12 @@ export default class JsonLabel extends Component {
             console.warn('null component');
         }
         //注册开始初始化语言回调
-        director.once('initJsonUI', () => {
+        JsonUIManager.event.once(LanguageEventType.初始化多语言系统, () => {
             this.initLabel();
         }, this);
 
         //注册切换语言回调
-        director.on('switchJsonUI', (language) => {
+        JsonUIManager.event.on(LanguageEventType.切换语言, (language) => {
             this.initLabel();
         }, this);
 

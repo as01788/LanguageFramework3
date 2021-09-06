@@ -1,4 +1,4 @@
-import { Enum, AssetManager, resources, JsonAsset, director, find, Sprite, SpriteFrame, Label, RichText, assetManager, Font, Node } from "cc";
+import { Enum, AssetManager, resources, JsonAsset, director, find, Sprite, SpriteFrame, Label, RichText, assetManager, Font, Node, EventTarget } from "cc";
 
 /**
 * 语言文件夹根目录
@@ -25,21 +25,30 @@ export enum LanguageFolder {
     波兰文 = 'pl',
     荷兰文 = 'nl'
 }
+
+export enum LanguageEventType{
+    初始化多语言系统,
+    切换语言前,
+    切换语言
+}
+
 const languageJsonPath: string = 'language';//language.json路径
 
 Enum(LanguageFolder)
 export class JsonUIManager {
 
     private static language: Map<string, any>;
-    private static currentLanguage: LanguageFolder = LanguageFolder.中文;
+    private static currentLanguage: LanguageFolder;
     public static get CurrentLanguage() {
         return this.currentLanguage;
     }
     private static currentBundle: AssetManager.Bundle;
 
+    public static event = new EventTarget();
+
 
     public static Init(defaultLanguage: LanguageFolder) {
-        this.currentLanguage = defaultLanguage;
+        // this.currentLanguage = defaultLanguage;
         resources.load(languageJsonPath, JsonAsset, (err, json: JsonAsset) => {
             if (err) {
                 console.log(err);
@@ -51,9 +60,10 @@ export class JsonUIManager {
                     this.language.set(item.id, item);
                 }
             });
-            director.emit('initJsonUI');
+            // director.emit('initJsonUI');
+            this.event.emit(LanguageEventType.初始化多语言系统);
         });
-        this.SwitchLanguage(this.currentLanguage, true);
+        this.SwitchLanguage(defaultLanguage, true);
     }
 
     public static async InitUIRes(startParent: Node, info) {
@@ -78,11 +88,11 @@ export class JsonUIManager {
                         let paths: string[] = UICompontent.path.split('+');
                         if (paths && paths.length > 0) {
                             for (let j: number = 0; j < paths.length; j++) {
-                               await this.InitComponent(find(paths[j], startParent), UICompontent);
+                                await this.InitComponent(find(paths[j], startParent), UICompontent);
                             }
                         }
                     } else {
-                       await this.InitComponent(find(UICompontent.path, startParent), UICompontent);
+                        await this.InitComponent(find(UICompontent.path, startParent), UICompontent);
                     }
                 }
             }
@@ -92,16 +102,22 @@ export class JsonUIManager {
     }
     private static async InitComponent(temp: Node, comt) {
         if (temp != null) {
-            if(!comt.bundleName){
-                comt.bundleName=this.currentLanguage;
+            if (!comt.bundleName) {
+                comt.bundleName = this.currentLanguage;
             }
             switch (comt.uiType) {
                 case "Image":
                     let image: Sprite = temp.getComponent(Sprite);
                     if (image) {
                         let sprite: SpriteFrame = await JsonUIManager.loadSpriteFrame(comt.bundleName, comt.resName);
-                        if (sprite)
+                        if (sprite){
                             image.spriteFrame = sprite;
+
+                            if(JsonUIManager.isLanguageBundle(comt.bundleName))
+                            this.event.once(LanguageEventType.切换语言前,()=>{
+                                image.spriteFrame=null;
+                            },this);
+                        }
                     } else {
                         console.log(`路径：${comt.path}，无法找到Image组件`);
                     }
@@ -113,7 +129,12 @@ export class JsonUIManager {
                     }
                     if (text) {
                         // text.font = await ResManager._Instance.GetRes<Font>("UIS/" + comt.resName);
-                        text.font = await JsonUIManager.loadFontFromBundle(comt.bundleName,comt.resName);
+                        text.font = await JsonUIManager.loadFontFromBundle(comt.bundleName, comt.resName);
+
+                        if(JsonUIManager.isLanguageBundle(comt.bundleName))
+                        this.event.once(LanguageEventType.切换语言前,()=>{
+                            text.font=null;
+                        },this);
                     } else {
                         console.log(`路径：${comt.path}，无法找到Label组件orRichText`);
                     }
@@ -133,6 +154,12 @@ export class JsonUIManager {
         } else {
             console.log(`无法找到路径：${comt.path}`);
         }
+    }
+
+    static isLanguageBundle(bundleName:string):boolean{
+        if(bundleName === LanguageFolder.中文 || bundleName === LanguageFolder.英文 || bundleName === LanguageFolder.中文香港 || bundleName === LanguageFolder.丹麦文 || bundleName === LanguageFolder.乌克兰文 || bundleName === LanguageFolder.俄文 || bundleName === LanguageFolder.土耳其文 || bundleName === LanguageFolder.希腊文 || bundleName === LanguageFolder.德文 || bundleName === LanguageFolder.意大利文 || bundleName === LanguageFolder.捷克文 || bundleName === LanguageFolder.日文 || bundleName === LanguageFolder.波兰文 || bundleName === LanguageFolder.泰文 || bundleName === LanguageFolder.瑞典文 || bundleName === LanguageFolder.中文台湾 || bundleName === LanguageFolder.荷兰文 || bundleName === LanguageFolder.葡萄牙文 || bundleName === LanguageFolder.西班牙文 || bundleName === LanguageFolder.韩文)
+            return true;
+        return false;
     }
 
     /**
@@ -189,41 +216,43 @@ export class JsonUIManager {
         }
     }
     public static GetSpriteFrame(resName: string) {
-        resName+="/spriteFrame";
+        resName += "/spriteFrame";
         return new Promise<SpriteFrame>((resolve, reject) => {
-            let bundle = assetManager.getBundle(this.CurrentLanguage);
-            if (bundle) {
-                bundle.load(resName, SpriteFrame, (err, res: SpriteFrame) => {
+            // let bundle = assetManager.getBundle(this.CurrentLanguage);
+            if (this.currentBundle) {
+                this.currentBundle.load(resName, SpriteFrame, (err, res: SpriteFrame) => {
                     if (err) {
                         console.warn(err);
-                        reject();
+                        resolve(null);
                     } else {
                         resolve(res);
                     }
                 });
             } else {
-                reject();
+                resolve(null);
             }
         });
     }
 
 
     public static SwitchLanguage(language: LanguageFolder, isEmit: boolean = true) {
+        if(language===this.currentLanguage) return;
+        isEmit &&  this.event.emit(LanguageEventType.切换语言前);
         assetManager.loadBundle(language, (err, bundle: AssetManager.Bundle) => {
             if (err) {
                 console.error(err);
                 return;
             }
 
-            if (JsonUIManager.currentBundle) {
-                //自动释放上次使用的bundle
-                JsonUIManager.currentBundle.releaseAll();
-            }
+            //自动释放上次使用的bundle
+            JsonUIManager.currentBundle && JsonUIManager.currentBundle.releaseAll();
 
             JsonUIManager.currentLanguage = language;
             JsonUIManager.currentBundle = bundle;
-            if (isEmit)
-                director.emit('switchJsonUI', language);
+            isEmit && this.event.emit(LanguageEventType.切换语言);
+                // director.emit('switchJsonUI', language);
+
+            
         });
     }
 
@@ -233,10 +262,11 @@ export class JsonUIManager {
      * @param bundleName bundle名称，null为resources
      */
     static async loadSpriteFrame(bundleName: string, path: string) {
-        path+="/spriteFrame";
+        path += "/spriteFrame";
+
         return new Promise<SpriteFrame>((resolve, reject) => {
             if (bundleName === 'resources') {
-                resources.load(`${path}`, SpriteFrame, (error: Error, res: SpriteFrame) => {
+                resources.load(path, SpriteFrame, (error: Error, res: SpriteFrame) => {
                     if (error) {
                         reject(error);
                         return;
@@ -244,13 +274,32 @@ export class JsonUIManager {
                     resolve(res);
                 });
             } else {
-                assetManager.getBundle(bundleName)?.load(path, SpriteFrame, (err, res: SpriteFrame) => {
-                    if (err) {
-                        reject(err);
-                        return;
-                    }
-                    resolve(res);
-                });
+                //如果bundleName跟语言bundle一致，那么切换到当前语言的bundle
+                
+                if (JsonUIManager.isLanguageBundle(bundleName)) {
+                    if (JsonUIManager.currentBundle)
+                        JsonUIManager.currentBundle.load(path, SpriteFrame, (error: Error, res: SpriteFrame) => {
+                            if (error) {
+                                console.error(error);
+                                resolve(null);
+                            } else {
+                                resolve(res);
+                            }
+                        });
+                    else
+                        resolve(null);
+                } else {
+
+
+                    assetManager.getBundle(bundleName)?.load(path, SpriteFrame, (err, res: SpriteFrame) => {
+                        if (err) {
+                            console.error(err);
+                            resolve(null);
+                        } else {
+                            resolve(res);
+                        }
+                    });
+                }
             }
         });
     }
@@ -279,7 +328,7 @@ export class JsonUIManager {
             } else {
                 reject(null);
             }
-
+            
         });
     }
 }

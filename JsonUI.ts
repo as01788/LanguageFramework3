@@ -1,6 +1,6 @@
 
-import { _decorator, Component, JsonAsset, director, resources } from "cc";
-import { JsonUIManager } from "./JsonUIManager";
+import { _decorator, Component, JsonAsset, resources } from "cc";
+import { JsonUIManager, LanguageEventType } from "./JsonUIManager";
 
 
 const { ccclass, property } = _decorator;
@@ -21,14 +21,14 @@ export default class JsonUI extends Component {
 
     init(jsonPath: string) {
         this.JsonPath = jsonPath;
-        director.targetOff(this);
+        JsonUIManager.event.targetOff(this);
         //注册开始初始化语言回调
-        director.once('initJsonUI', () => {
+        JsonUIManager.event.once(LanguageEventType.初始化多语言系统, () => {
             this.InitLanguage();
         }, this);
 
         //注册切换语言回调
-        director.on('switchJsonUI', (language) => {
+        JsonUIManager.event.on(LanguageEventType.切换语言, (language) => {
             if (this.Json) {
                 // this.Json.json['Info'].language = language;
                 this.initJson();

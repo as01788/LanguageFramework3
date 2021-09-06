@@ -1,6 +1,6 @@
 
 import { _decorator, Component, Sprite, director, CCString } from "cc";
-import { JsonUIManager } from "./JsonUIManager";
+import { JsonUIManager, LanguageEventType } from "./JsonUIManager";
 
 const {ccclass, property} = _decorator;
 
@@ -17,17 +17,20 @@ export default class JsonSprite extends Component {
 
         this.sprite=this.node.getComponent(Sprite);
 
-        director.targetOff(this);
+        JsonUIManager.event.targetOff(this);
         //注册开始初始化语言回调
-        director.once('initJsonUI', () => {
+        JsonUIManager.event.once(LanguageEventType.初始化多语言系统, () => {
             this.InitSprite();
         }, this);
 
         //注册切换语言回调
-        director.on('switchJsonUI', (language) => {
+        JsonUIManager.event.on(LanguageEventType.切换语言, (language) => {
             this.InitSprite();
         }, this);
         this.InitSprite();
+        JsonUIManager.event.on(LanguageEventType.切换语言前,()=>{
+            this.sprite.spriteFrame=null;
+        },this);
     }
 
     onLoad(){
